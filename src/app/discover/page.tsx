@@ -1,0 +1,198 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { BeLoveEvent, EventType } from "@/lib/types";
+import { mockEvents } from "@/lib/mock-events";
+import { eventTypeIcon } from "@/lib/utils";
+import EventCard from "@/components/EventCard";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+
+const STORAGE_KEY = "belove_events";
+
+function loadEvents(): BeLoveEvent[] {
+  if (typeof window === "undefined") return mockEvents;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return mockEvents;
+}
+
+function saveEvents(events: BeLoveEvent[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+}
+
+const EVENT_TYPES: EventType[] = [
+  "Festival", "Concert", "Fitness", "Market", "Sports", "College", "Pop-up", "Community", "Other",
+];
+
+export default function DiscoverPage() {
+  const [events, setEvents] = useState<BeLoveEvent[]>([]);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<EventType | "All">("All");
+  const [minScore, setMinScore] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "skipped">("all");
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    setEvents(loadEvents());
+  }, []);
+
+  function mutate(updated: BeLoveEvent[]) {
+    setEvents(updated);
+    saveEvents(updated);
+  }
+
+  function handleApprove(id: string) {
+    mutate(events.map((e) => (e.id === id ? { ...e, status: "approved" as const } : e)));
+  }
+  function handleSkip(id: string) {
+    mutate(events.map((e) => (e.id === id ? { ...e, status: "skipped" as const } : e)));
+  }
+  function handleSave(id: string) {
+    mutate(events.map((e) => (e.id === id ? { ...e, status: "saved" as const } : e)));
+  }
+  function handleAddCalendar(id: string) {
+    mutate(events.map((e) => (e.id === id ? { ...e, calendarAdded: true } : e)));
+  }
+
+  const filtered = events.filter((e) => {
+    if (query && !e.name.toLowerCase().includes(query.toLowerCase()) &&
+        !e.location.toLowerCase().includes(query.toLowerCase())) return false;
+    if (typeFilter !== "All" && e.eventType !== typeFilter) return false;
+    if (e.brandFitScore < minScore) return false;
+    if (statusFilter !== "all" && e.status !== statusFilter) return false;
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => b.brandFitScore - a.brandFitScore);
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">Discover Events</h1>
+        <p className="text-zinc-400 text-sm mt-0.5">
+          {events.length} events discovered in Houston, TX · Sorted by brand fit score
+        </p>
+      </div>
+
+      {/* Search + Filter bar */}
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600"
+          />
+          {query && (
+            <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-3.5 h-3.5 text-zinc-500" />
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors ${
+            showFilters
+              ? "bg-rose-500/15 border-rose-500/30 text-rose-300"
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Filters
+        </button>
+      </div>
+
+      {/* Filters panel */}
+      {showFilters && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-4 space-y-4">
+          <div>
+            <p className="text-zinc-400 text-xs font-medium uppercase tracking-wide mb-2">Event Type</p>
+            <div className="flex flex-wrap gap-2">
+              {(["All", ...EVENT_TYPES] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t as EventType | "All")}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    typeFilter === t
+                      ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {t !== "All" && eventTypeIcon(t)} {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-zinc-400 text-xs font-medium uppercase tracking-wide mb-2">
+              Min Brand Fit Score: {minScore}+
+            </p>
+            <input
+              type="range"
+              min={0}
+              max={9}
+              value={minScore}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+              className="w-full accent-rose-500"
+            />
+            <div className="flex justify-between text-xs text-zinc-600 mt-1">
+              <span>Any</span>
+              <span>5+</span>
+              <span>7+</span>
+              <span>9+</span>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-zinc-400 text-xs font-medium uppercase tracking-wide mb-2">Status</p>
+            <div className="flex gap-2">
+              {(["all", "pending", "approved", "skipped"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`text-xs px-3 py-1.5 rounded-full border capitalize transition-colors ${
+                    statusFilter === s
+                      ? "bg-rose-500/20 border-rose-500/40 text-rose-300"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results count */}
+      <p className="text-zinc-500 text-xs mb-3">
+        {sorted.length} event{sorted.length !== 1 ? "s" : ""} found
+      </p>
+
+      {/* Event list */}
+      <div className="space-y-3">
+        {sorted.length === 0 ? (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
+            <p className="text-zinc-500 text-sm">No events match your filters.</p>
+          </div>
+        ) : (
+          sorted.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              onApprove={handleApprove}
+              onSkip={handleSkip}
+              onSave={handleSave}
+              onAddCalendar={handleAddCalendar}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
