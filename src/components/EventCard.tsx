@@ -180,7 +180,7 @@ export default function EventCard({
       )}
 
       {/* Actions */}
-      <div className="border-t border-zinc-800 px-4 py-2.5 flex items-center justify-between gap-2">
+      <div className="border-t border-zinc-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
         <button
           onClick={() => setExpanded(!expanded)}
           className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"

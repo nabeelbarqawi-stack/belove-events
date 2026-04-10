@@ -31,7 +31,10 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-zinc-950">
         <Sidebar />
-        <main className="ml-60 min-h-screen">{children}</main>
+        {/* Desktop: offset for sidebar. Mobile: offset for top bar + bottom nav */}
+        <main className="md:ml-60 pt-14 md:pt-0 pb-16 md:pb-0 min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   );

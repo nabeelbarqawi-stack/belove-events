@@ -66,9 +66,9 @@ export default function ApprovedPage() {
     : "—";
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Approved Events</h1>
           <p className="text-zinc-400 text-sm mt-0.5">
@@ -78,7 +78,7 @@ export default function ApprovedPage() {
         {approved.length > 0 && (
           <button
             onClick={handleExportAll}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-sm rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-sm rounded-lg transition-colors self-start"
           >
             <Download className="w-4 h-4" />
             Export All to Calendar (.ics)
@@ -88,7 +88,7 @@ export default function ApprovedPage() {
 
       {/* Summary stats */}
       {approved.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
             <p className="text-2xl font-bold text-emerald-400">{approved.length}</p>
             <p className="text-zinc-500 text-xs mt-0.5">Events Approved</p>

@@ -75,9 +75,9 @@ export default function DashboardPage() {
   const approved = events.filter((e) => e.status === "approved");
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="w-4 h-4 text-rose-400" />
@@ -90,7 +90,7 @@ export default function DashboardPage() {
             Week of {format(new Date(), "MMMM d, yyyy")} · Houston, TX
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {approved.length > 0 && (
             <button
               onClick={handleExportAll}
