@@ -30,11 +30,13 @@ const EVENT_TYPES: EventType[] = [
 
 const MONTH_TABS = [
   { label: "All", value: "all" },
-  { label: "April", value: "3" },   // month index 0-based
+  { label: "April", value: "3" },
   { label: "May", value: "4" },
   { label: "June", value: "5" },
   { label: "July", value: "6" },
   { label: "August", value: "7" },
+  { label: "September", value: "8" },
+  { label: "October", value: "9" },
 ];
 
 const VENUE_FILTERS = [
