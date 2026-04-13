@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { BeLoveEvent } from "@/lib/types";
 import { mockEvents } from "@/lib/mock-events";
-import { downloadICS, downloadAllICS } from "@/lib/utils";
+import { downloadAllICS } from "@/lib/utils";
 import StatsBar from "@/components/StatsBar";
 import EventCard from "@/components/EventCard";
 import { format } from "date-fns";
@@ -26,9 +26,22 @@ function saveEvents(events: BeLoveEvent[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
 }
 
+const SETTINGS_KEY = "belove_settings";
+
+function loadSettings() {
+  if (typeof window === "undefined") return {};
+  try {
+    const s = localStorage.getItem(SETTINGS_KEY);
+    return s ? JSON.parse(s) : {};
+  } catch { return {}; }
+}
+
 export default function DashboardPage() {
   const [events, setEvents] = useState<BeLoveEvent[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
+  const [scanError, setScanError] = useState("");
+  const [newCount, setNewCount] = useState(0);
 
   useEffect(() => {
     setEvents(loadEvents());
@@ -57,8 +70,51 @@ export default function DashboardPage() {
 
   async function handleScan() {
     setScanning(true);
-    await new Promise((r) => setTimeout(r, 2200));
-    setScanning(false);
+    setScanError("");
+    setNewCount(0);
+    setScanStatus("Connecting to sources...");
+
+    try {
+      const settings = loadSettings();
+      const currentNames = events.map((e) => e.name);
+
+      setScanStatus("Scanning 15 Houston event sources...");
+
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabledSources: Object.entries(settings.enabledSources || {})
+            .filter(([, v]) => v)
+            .map(([k]) => k),
+          eventbriteKey: settings.eventbriteKey || "",
+          ticketmasterKey: settings.ticketmasterKey || "",
+          minScore: settings.minScore || 6,
+          existingEventNames: currentNames,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setScanError(data.error || "Scan failed");
+        return;
+      }
+
+      if (data.events && data.events.length > 0) {
+        const current = loadEvents();
+        const merged = [...current, ...data.events];
+        mutate(merged);
+        setNewCount(data.events.length);
+        setScanStatus(`Found ${data.events.length} new events across ${data.discovered} discovered`);
+      } else {
+        setScanStatus(`Scanned ${data.discovered || 0} events — no new matches above score threshold`);
+      }
+    } catch (e) {
+      setScanError("Could not reach scan API. Check your ANTHROPIC_API_KEY in Vercel settings.");
+    } finally {
+      setScanning(false);
+    }
   }
 
   function handleExportAll() {
@@ -121,14 +177,30 @@ export default function DashboardPage() {
             <RefreshCw className="w-4 h-4 text-rose-400 animate-spin" />
             <div>
               <p className="text-white text-sm font-medium">Scanning Houston events...</p>
-              <p className="text-zinc-500 text-xs mt-0.5">
-                Checking Eventbrite · Meetup · Houston365 · Do713 · Ticketmaster
-              </p>
+              <p className="text-zinc-500 text-xs mt-0.5">{scanStatus || "Connecting to sources..."}</p>
             </div>
           </div>
           <div className="mt-3 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full animate-pulse w-3/4" />
           </div>
+        </div>
+      )}
+
+      {/* Scan error */}
+      {scanError && !scanning && (
+        <div className="mt-4 bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+          <p className="text-red-400 text-sm font-medium">Scan failed</p>
+          <p className="text-red-400/70 text-xs mt-0.5">{scanError}</p>
+        </div>
+      )}
+
+      {/* New events found */}
+      {newCount > 0 && !scanning && (
+        <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+          <p className="text-emerald-400 text-sm font-medium">
+            {newCount} new event{newCount !== 1 ? "s" : ""} discovered!
+          </p>
+          <p className="text-emerald-400/70 text-xs mt-0.5">{scanStatus}</p>
         </div>
       )}
 
